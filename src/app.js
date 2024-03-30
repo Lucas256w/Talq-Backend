@@ -23,7 +23,14 @@ app.use(compression());
 app.use(logger("dev"));
 app.use(express.json());
 app.use(cookieParser());
-app.use(helmet());
+app.use(
+  helmet.contentSecurityPolicy({
+    directives: {
+      "script-src": ["'self'"],
+      "img-src": ["'self'", "*.cloudinary.com"],
+    },
+  })
+);
 
 // ---------------------------------------------- DATABASE CONNECTION -------------------------------
 
@@ -35,9 +42,9 @@ async function main() {
 
 // ---------------------------------------------- ROUTES -------------------------------
 
-app.get("/", (req, res) => {
-  res.send("hello");
-});
+const userRoutes = require("./routes/userRoute");
+
+app.use("/api", userRoutes);
 
 // ---------------------------------------------- ERROR HANDLER -------------------------------
 
