@@ -43,7 +43,6 @@ async function main() {
 // ---------------------------------------------- ROUTES -------------------------------
 
 const userRoutes = require("./routes/userRoute");
-
 app.use("/api", userRoutes);
 
 // ---------------------------------------------- ERROR HANDLER -------------------------------

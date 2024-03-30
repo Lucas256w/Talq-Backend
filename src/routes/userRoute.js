@@ -11,6 +11,6 @@ router.post("/login", userController.find_user);
 router.get("/re-login", verifyToken, userController.re_login_user);
 
 // POST request for user signup
-router.post("/signup", upload.single("uploaded_file"), userController.new_user);
+router.post("/signup", upload.single("profile_img"), userController.new_user);
 
 module.exports = router;

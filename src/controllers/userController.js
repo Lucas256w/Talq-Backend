@@ -63,6 +63,8 @@ exports.find_user = validate("find_user").concat(
           return res.json({
             message: "Login successful",
             username: user.username,
+            email: user.email,
+            profile_img: user.profile_img,
             id: user.id,
             token,
           });
@@ -89,6 +91,7 @@ exports.re_login_user = asyncHandler(async (req, res) => {
 // Sign up handler
 exports.new_user = validate("new_user").concat(
   asyncHandler(async (req, res) => {
+    console.log(req.body);
     const errors = validationResult(req);
 
     const userExist = await User.findOne({
@@ -113,7 +116,7 @@ exports.new_user = validate("new_user").concat(
         username: req.body.username,
         password: hashedPassword,
         email: req.body.email,
-        profile_img: result.sexure_url,
+        profile_img: result.secure_url,
         cloudinary_id: result.public_id,
       });
     } else {
@@ -125,10 +128,11 @@ exports.new_user = validate("new_user").concat(
     }
 
     try {
-      const user = await newUser.save();
+      await user.save();
       res.status(201).json({ message: "User created successfully" });
     } catch (error) {
       // Handle errors like duplicate username/email
+      console.log("hello");
       res.status(500).json({
         message: "An error occurred while creating the user.",
         error: error.message,
