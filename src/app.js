@@ -45,6 +45,9 @@ async function main() {
 const userRoutes = require("./routes/userRoute");
 app.use("/api", userRoutes);
 
+const messageRoomRoutes = require("./routes/messageRoomRoute");
+app.use("/api", messageRoomRoutes);
+
 // ---------------------------------------------- ERROR HANDLER -------------------------------
 
 // catch 404 and forward to error handler
