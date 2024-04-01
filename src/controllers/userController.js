@@ -42,12 +42,11 @@ const validate = (method) => {
 //Login handler
 exports.find_user = validate("find_user").concat(
   asyncHandler(async (req, res) => {
-    const errors = validationResult;
+    const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
-
-    const user = await User.findOne({ username: req.body.usernmae }).exec();
+    const user = await User.findOne({ username: req.body.username }).exec();
     if (!user) {
       return res.status(401).json({ message: "Login failed: User not found." });
     }
@@ -62,10 +61,6 @@ exports.find_user = validate("find_user").concat(
         (err, token) => {
           return res.json({
             message: "Login successful",
-            username: user.username,
-            email: user.email,
-            profile_img: user.profile_img,
-            id: user.id,
             token,
           });
         }
@@ -82,7 +77,7 @@ exports.find_user = validate("find_user").concat(
 exports.re_login_user = asyncHandler(async (req, res) => {
   res.json({
     username: req.user.username,
-    email: req.user.username,
+    email: req.user.email,
     profile_img: req.user.profile_img,
     id: req.user._id,
   });
@@ -99,7 +94,7 @@ exports.new_user = validate("new_user").concat(
     }).exec();
 
     if (userExist) {
-      return res.status(401).json({ message: "Username taken" });
+      return res.status(409).json({ message: "Username taken" });
     }
 
     if (!errors.isEmpty()) {
