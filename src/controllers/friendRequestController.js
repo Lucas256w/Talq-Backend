@@ -27,13 +27,13 @@ exports.new_friend_request = validate("new_friend_request").concat(
     }
 
     // Check if the user is trying to send a friend request to themselves
-    if (to._id.toString() === req.user._id.toString()) {
+    if (to._id.toString() === req.user.userId.toString()) {
       return res.status(400).json({ message: "Cannot send request to self" });
     }
 
     // Check if the users are already friends
     const existingFriend = await User.findOne({
-      _id: req.user._id,
+      _id: req.user.userId,
       friends: to._id,
     }).exec();
     if (existingFriend) {
@@ -43,8 +43,8 @@ exports.new_friend_request = validate("new_friend_request").concat(
     // Check if the friend request already exists
     const existingRequest = await FriendRequest.findOne({
       $or: [
-        { from: req.user._id, to: to._id },
-        { from: to._id, to: req.user._id },
+        { from: req.user.userId, to: to._id },
+        { from: to._id, to: req.user.userId },
       ],
     }).exec();
 
@@ -53,7 +53,7 @@ exports.new_friend_request = validate("new_friend_request").concat(
       // If the found request is one where the current receiver is the sender, adjust the message accordingly
       if (
         existingRequest.from.toString() === to._id.toString() &&
-        existingRequest.to.toString() === req.user._id.toString()
+        existingRequest.to.toString() === req.user.userId.toString()
       ) {
         message = "Receiving user already sent a friend request";
       }
@@ -62,7 +62,7 @@ exports.new_friend_request = validate("new_friend_request").concat(
 
     // Create and save the new friend request
     const friendRequest = new FriendRequest({
-      from: req.user._id,
+      from: req.user.userId,
       to: to._id,
     });
     try {
@@ -76,7 +76,7 @@ exports.new_friend_request = validate("new_friend_request").concat(
 
 // Handler for getting all incoming friend requests for a user ------------------------------------------
 exports.get_received_requests = asyncHandler(async (req, res) => {
-  const friendRequests = await FriendRequest.find({ to: req.user._id })
+  const friendRequests = await FriendRequest.find({ to: req.user.userId })
     .populate("from", "username profile_img")
     .exec();
   res.json(friendRequests);
@@ -85,7 +85,7 @@ exports.get_received_requests = asyncHandler(async (req, res) => {
 // Handler for getting all outgoing friend requests for a user ------------------------------------------
 exports.get_sent_requests = asyncHandler(async (req, res) => {
   const friendRequests = await FriendRequest.find({
-    from: req.user._id,
+    from: req.user.userId,
   })
     .populate("to", "username profile_img")
     .exec();
@@ -100,7 +100,7 @@ exports.accept_friend_request = asyncHandler(async (req, res) => {
   }
 
   // Check if the user is the receiver of the request
-  if (friendRequest.to.toString() !== req.user._id.toString()) {
+  if (friendRequest.to.toString() !== req.user.userId.toString()) {
     return res.status(403).json({ message: "Unauthorized" });
   }
 

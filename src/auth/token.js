@@ -11,7 +11,8 @@ const verifyToken = (req, res, next) => {
         return res.sendStatus(403);
       }
 
-      req.user = user.user;
+      req.user = user;
+
       next();
     });
   } else {
