@@ -7,7 +7,7 @@ const { body, validationResult } = require("express-validator");
 const validate = (method) => {
   switch (method) {
     case "new_friend_request": {
-      return [body("to", "To is required").escape().notEmpty()];
+      return [body("username", "username is required").escape().notEmpty()];
     }
   }
 };
@@ -21,15 +21,20 @@ exports.new_friend_request = validate("new_friend_request").concat(
     }
 
     // Find the user to whom the friend request is being sent
-    const to = await User.findById(req.body.to).exec();
+    const to = await User.findOne({ username: req.body.username }).exec();
     if (!to) {
       return res.status(400).json({ message: "User not found" });
+    }
+
+    // Check if the user is trying to send a friend request to themselves
+    if (to._id.toString() === req.user._id.toString()) {
+      return res.status(400).json({ message: "Cannot send request to self" });
     }
 
     // Check if the users are already friends
     const existingFriend = await User.findOne({
       _id: req.user._id,
-      friends: req.body.to,
+      friends: to._id,
     }).exec();
     if (existingFriend) {
       return res.status(400).json({ message: "Already friends" });
@@ -38,8 +43,8 @@ exports.new_friend_request = validate("new_friend_request").concat(
     // Check if the friend request already exists
     const existingRequest = await FriendRequest.findOne({
       $or: [
-        { from: req.user._id, to: req.body.to },
-        { from: req.body.to, to: req.user._id },
+        { from: req.user._id, to: to._id },
+        { from: to._id, to: req.user._id },
       ],
     }).exec();
 
@@ -47,8 +52,8 @@ exports.new_friend_request = validate("new_friend_request").concat(
       let message = "Request already exists";
       // If the found request is one where the current receiver is the sender, adjust the message accordingly
       if (
-        existingRequest.from.toString() === req.body.to &&
-        existingRequest.to.toString() === req.user._id
+        existingRequest.from.toString() === to._id.toString() &&
+        existingRequest.to.toString() === req.user._id.toString()
       ) {
         message = "Receiving user already sent a friend request";
       }
@@ -58,10 +63,11 @@ exports.new_friend_request = validate("new_friend_request").concat(
     // Create and save the new friend request
     const friendRequest = new FriendRequest({
       from: req.user._id,
-      to: req.body.to,
+      to: to._id,
     });
     try {
       await friendRequest.save();
+      return res.json({ message: "Friend request sent" });
     } catch (err) {
       return res.status(500).json({ message: "Server error" });
     }
@@ -70,16 +76,20 @@ exports.new_friend_request = validate("new_friend_request").concat(
 
 // Handler for getting all incoming friend requests for a user ------------------------------------------
 exports.get_received_requests = asyncHandler(async (req, res) => {
-  const friendRequests = await FriendRequest.find({ to: req.user._id }).exec();
-  res.json({ friendRequests });
+  const friendRequests = await FriendRequest.find({ to: req.user._id })
+    .populate("from", "username profile_img")
+    .exec();
+  res.json(friendRequests);
 });
 
 // Handler for getting all outgoing friend requests for a user ------------------------------------------
 exports.get_sent_requests = asyncHandler(async (req, res) => {
   const friendRequests = await FriendRequest.find({
     from: req.user._id,
-  }).exec();
-  res.json({ friendRequests });
+  })
+    .populate("to", "username profile_img")
+    .exec();
+  res.json(friendRequests);
 });
 
 // Handler for accepting a friend request ----------------------------------------------------------------
@@ -107,16 +117,11 @@ exports.accept_friend_request = asyncHandler(async (req, res) => {
   res.json({ message: "Friend request accepted" });
 });
 
-// Handler for rejecting a friend request ----------------------------------------------------------------
-exports.reject_friend_request = asyncHandler(async (req, res) => {
+// Handler for deleting a friend request (reject or canel a request) ----------------------------------------------------------------
+exports.delete_friend_request = asyncHandler(async (req, res) => {
   const friendRequest = await FriendRequest.findById(req.params.id).exec();
   if (!friendRequest) {
     return res.status(400).json({ message: "Request not found" });
-  }
-
-  // Check if the user is the receiver of the request
-  if (friendRequest.to.toString() !== req.user._id.toString()) {
-    return res.status(403).json({ message: "Unauthorized" });
   }
 
   // Delete the friend request

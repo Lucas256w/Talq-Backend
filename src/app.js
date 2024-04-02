@@ -42,11 +42,17 @@ async function main() {
 
 // ---------------------------------------------- ROUTES -------------------------------
 
-const userRoutes = require("./routes/userRoute");
-app.use("/api", userRoutes);
+const authRoutes = require("./routes/authRoute");
+app.use("/api", authRoutes);
 
 const messageRoomRoutes = require("./routes/messageRoomRoute");
 app.use("/api", messageRoomRoutes);
+
+const friendRequestRoutes = require("./routes/friendRequestRoute");
+app.use("/api", friendRequestRoutes);
+
+const userRoutes = require("./routes/userRoute");
+app.use("/api", userRoutes);
 
 // ---------------------------------------------- ERROR HANDLER -------------------------------
 

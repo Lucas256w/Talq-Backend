@@ -1,137 +1,40 @@
 const User = require("../models/user");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const { body, validationResult } = require("express-validator");
+const FriendRequest = require("../models/friendRequest");
 const asyncHandler = require("express-async-handler");
+const { body, validationResult } = require("express-validator");
 
-const cloudinary = require("../../config/cloudinaryConfig");
+// Validation function for different methods ------------------------------------------------------------
 
-// Function to validate input fields
-const validate = (method) => {
-  switch (method) {
-    case "find_user": {
-      return [
-        body("username", "Username is required").escape().notEmpty(),
-        body("password", "Password is required").escape().notEmpty(),
-      ];
-    }
-    case "new_user": {
-      return [
-        body("username", "Username must be at least 4 characters long")
-          .trim()
-          .isLength({ min: 4 })
-          .escape(),
-        body("email", "Must be a valid email address")
-          .trim()
-          .isEmail()
-          .normalizeEmail()
-          .escape(),
-        body("password", "Password must be at least 8 characters long")
-          .trim()
-          .isLength({ min: 8 })
-          .escape(),
-        body("confirmPassword", "Confirm Password does not match password")
-          .trim()
-          .custom((value, { req }) => value === req.body.password)
-          .escape(),
-      ];
-    }
+// Handler for getting all friends of a user ------------------------------------------------------------
+exports.get_friends = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id)
+    .populate("friends", "_id profile_img username")
+    .exec();
+  if (!user) {
+    return res.status(400).json({ message: "User not found" });
   }
-};
 
-//Login handler
-exports.find_user = validate("find_user").concat(
-  asyncHandler(async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-    const user = await User.findOne({ username: req.body.username }).exec();
-    if (!user) {
-      return res.status(401).json({ message: "Login failed: User not found." });
-    }
-
-    const match = await bcrypt.compare(req.body.password, user.password);
-    if (match) {
-      // USE JWT TO SIGN USER AND SEND TOKEN
-      jwt.sign(
-        { user },
-        process.env.SECRET_KEY,
-        { expiresIn: "2 days" },
-        (err, token) => {
-          return res.json({
-            message: "Login successful",
-            token,
-          });
-        }
-      );
-    } else {
-      return res
-        .status(401)
-        .json({ message: "Login failed: Incorrect password." });
-    }
-  })
-);
-
-// re-login handler
-exports.re_login_user = asyncHandler(async (req, res) => {
-  res.json({
-    username: req.user.username,
-    email: req.user.email,
-    profile_img: req.user.profile_img,
-    id: req.user._id,
-  });
+  res.json(user.friends);
 });
 
-// Sign up handler
-exports.new_user = validate("new_user").concat(
-  asyncHandler(async (req, res) => {
-    console.log(req.body);
-    const errors = validationResult(req);
+// Handler for removing a friend from a user's friend list ------------------------------------------------------------
+exports.remove_friend = asyncHandler(async (req, res) => {
+  const friend = await User.findById(req.params.id).exec();
+  if (!friend) {
+    return res.status(400).json({ message: "Friend not found" });
+  }
 
-    const userExist = await User.findOne({
-      username: req.body.username,
-    }).exec();
+  const user = await User.findById(req.user._id).exec();
+  if (!user) {
+    return res.status(400).json({ message: "User not found" });
+  }
 
-    if (userExist) {
-      return res.status(409).json({ message: "Username taken" });
-    }
+  //delete from both users' friend list
+  await friend.friends.pull(user._id);
+  await user.friends.pull(friend._id);
 
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
+  await friend.save();
+  await user.save();
 
-    let user;
-
-    const hashedPassword = await bcrypt.hash(req.body.password, 10);
-
-    if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path);
-      user = new User({
-        username: req.body.username,
-        password: hashedPassword,
-        email: req.body.email,
-        profile_img: result.secure_url,
-        cloudinary_id: result.public_id,
-      });
-    } else {
-      user = new User({
-        username: req.body.username,
-        password: hashedPassword,
-        email: req.body.email,
-      });
-    }
-
-    try {
-      await user.save();
-      res.status(201).json({ message: "User created successfully" });
-    } catch (error) {
-      // Handle errors like duplicate username/email
-      console.log("hello");
-      res.status(500).json({
-        message: "An error occurred while creating the user.",
-        error: error.message,
-      });
-    }
-  })
-);
+  res.json({ message: "Friend removed" });
+});
