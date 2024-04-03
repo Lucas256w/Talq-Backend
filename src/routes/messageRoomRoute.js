@@ -38,4 +38,11 @@ router.delete(
   messageRoomController.remove_user
 );
 
+// PUT request to update the name of a message room
+router.put(
+  "/message-room/update-name/:id",
+  verifyToken,
+  messageRoomController.update_name
+);
+
 module.exports = router;

@@ -33,17 +33,26 @@ exports.new_message_room = validate("new_message_room").concat(
     // add the user who is creating the room to the users array
     users.push(user);
 
-    // check if the message room already exists with the EXACT same users (room1 = [user1, user2], room2 = [user2, user1] are the same room, but room1 = [user1, user2], room2 = [user1, user2, user3] are different rooms)
-    const existingRoom = await MessageRoom.findOne({
-      users: { $size: users.length, $all: users.map((user) => user._id) },
-    }).exec();
-    if (existingRoom) {
-      return res.status(400).json({ message: "Message room already exists" });
+    if (users.length === 2) {
+      // if there are only two users (private), check if the message room already exists with the same users
+      const existingRoom = await MessageRoom.findOne({
+        users: { $size: users.length, $all: users.map((user) => user._id) },
+      }).exec();
+      if (existingRoom) {
+        return res.status(400).json({ message: "Message room already exists" });
+      }
     }
 
     const messageRoom = new MessageRoom({
       users: users.map((user) => user._id),
+      type: users.length === 2 ? "private" : "group",
+      name: users
+        .filter((user) => user._id.toString() !== req.user.userId)
+        .map((user) => user.username)
+        .join(", "),
     });
+
+    console.log(messageRoom);
 
     try {
       await messageRoom.save();
@@ -160,19 +169,19 @@ exports.add_user = asyncHandler(async (req, res) => {
 
   messageRoom.users = messageRoom.users.concat(users.map((user) => user._id));
 
-  // check if the message room already exists with the EXACT same users (room1 = [user1, user2], room2 = [user2, user1] are the same room, but room1 = [user1, user2], room2 = [user1, user2, user3] are different rooms)
-  const existingRoom = await MessageRoom.findOne({
-    users: {
-      $size: messageRoom.users.length,
-      $all: messageRoom.users.map((user) => user._id),
-    },
-  }).exec();
-  if (existingRoom) {
-    return res.status(400).json({ message: "Message room already exists" });
-  }
+  // // check if the message room already exists with the EXACT same users (room1 = [user1, user2], room2 = [user2, user1] are the same room, but room1 = [user1, user2], room2 = [user1, user2, user3] are different rooms)
+  // const existingRoom = await MessageRoom.findOne({
+  //   users: {
+  //     $size: messageRoom.users.length,
+  //     $all: messageRoom.users.map((user) => user._id),
+  //   },
+  // }).exec();
+  // if (existingRoom) {
+  //   return res.status(400).json({ message: "Message room already exists" });
+  // }
 
   await messageRoom.save();
-  res.json({ message: "User added to message room" });
+  res.json({ message: "Users added to message room" });
 });
 
 // remove user from message room handler ------------------------------------------------------------------
@@ -211,4 +220,25 @@ exports.remove_user = asyncHandler(async (req, res) => {
 
   await messageRoom.save();
   res.json({ message: "User removed from message room" });
+});
+
+// update message room name handler ------------------------------------------------------------------
+exports.update_name = asyncHandler(async (req, res) => {
+  const messageRoom = await MessageRoom.findById(req.params.id).exec();
+  if (!messageRoom) {
+    return res.status(400).json({ message: "Message room not found" });
+  }
+
+  if (
+    !messageRoom.users
+      .map((user) => user.toString())
+      .includes(req.user.userId.toString())
+  ) {
+    return res.status(400).json({ message: "User not in message room" });
+  }
+
+  messageRoom.name = req.body.name;
+
+  await messageRoom.save();
+  res.json({ message: "Message room name updated" });
 });
