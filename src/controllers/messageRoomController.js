@@ -139,19 +139,38 @@ exports.get_message_room = asyncHandler(async (req, res) => {
   res.json(messageRoom);
 });
 
-// add additional user to message room handler ------------------------------------------------------------
+// add additional user(s) to message room handler ------------------------------------------------------------
 exports.add_user = asyncHandler(async (req, res) => {
   const messageRoom = await MessageRoom.findById(req.params.id).exec();
   if (!messageRoom) {
     return res.status(400).json({ message: "Message room not found" });
   }
 
-  const user = await User.findOne({ username: req.body.username }).exec();
-  if (!user) {
-    return res.status(400).json({ message: "User not found" });
+  const users = await User.find({ username: { $in: req.body.users } }).exec();
+  if (users.length !== req.body.users.length) {
+    return res.status(400).json({ message: "Users not found" });
   }
 
-  messageRoom.users.push(user._id);
+  // if there are users who are already in the message room that is the same as the ones to be added, respond with an error
+  for (let user of users) {
+    if (messageRoom.users.includes(user._id)) {
+      return res.status(400).json({ message: "User already in message room" });
+    }
+  }
+
+  messageRoom.users = messageRoom.users.concat(users.map((user) => user._id));
+
+  // check if the message room already exists with the EXACT same users (room1 = [user1, user2], room2 = [user2, user1] are the same room, but room1 = [user1, user2], room2 = [user1, user2, user3] are different rooms)
+  const existingRoom = await MessageRoom.findOne({
+    users: {
+      $size: messageRoom.users.length,
+      $all: messageRoom.users.map((user) => user._id),
+    },
+  }).exec();
+  if (existingRoom) {
+    return res.status(400).json({ message: "Message room already exists" });
+  }
+
   await messageRoom.save();
   res.json({ message: "User added to message room" });
 });

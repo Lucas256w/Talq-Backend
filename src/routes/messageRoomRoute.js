@@ -24,8 +24,8 @@ router.get(
   messageRoomController.get_message_room
 );
 
-// POST request for adding a user to a message room
-router.post(
+// PUT request for adding a user to a message room
+router.put(
   "/message-room/add-user/:id",
   verifyToken,
   messageRoomController.add_user
