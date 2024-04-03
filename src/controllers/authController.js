@@ -89,7 +89,6 @@ exports.re_login_user = asyncHandler(async (req, res) => {
 // Sign up handler ------------------------------------------------------------
 exports.new_user = validate("new_user").concat(
   asyncHandler(async (req, res) => {
-    console.log(req.body);
     const errors = validationResult(req);
 
     const userExist = await User.findOne({
@@ -130,7 +129,6 @@ exports.new_user = validate("new_user").concat(
       res.status(201).json({ message: "User created successfully" });
     } catch (error) {
       // Handle errors like duplicate username/email
-      console.log("hello");
       res.status(500).json({
         message: "An error occurred while creating the user.",
         error: error.message,
