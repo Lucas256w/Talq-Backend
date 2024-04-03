@@ -6,7 +6,7 @@ const { body, validationResult } = require("express-validator");
 const validate = (method) => {
   switch (method) {
     case "new_message": {
-      return [body("message", "Message is required").exists()];
+      return [body("message", "Message is required").trim().exists().escape()];
     }
   }
 };

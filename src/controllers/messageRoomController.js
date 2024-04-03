@@ -9,6 +9,9 @@ const validate = (method) => {
     case "new_message_room": {
       return [body("users", "Users must be an array of usernames").isArray()];
     }
+    case "update_name": {
+      return [body("name", "Name is required").trim().exists().escape()];
+    }
   }
 };
 
@@ -169,17 +172,6 @@ exports.add_user = asyncHandler(async (req, res) => {
 
   messageRoom.users = messageRoom.users.concat(users.map((user) => user._id));
 
-  // // check if the message room already exists with the EXACT same users (room1 = [user1, user2], room2 = [user2, user1] are the same room, but room1 = [user1, user2], room2 = [user1, user2, user3] are different rooms)
-  // const existingRoom = await MessageRoom.findOne({
-  //   users: {
-  //     $size: messageRoom.users.length,
-  //     $all: messageRoom.users.map((user) => user._id),
-  //   },
-  // }).exec();
-  // if (existingRoom) {
-  //   return res.status(400).json({ message: "Message room already exists" });
-  // }
-
   await messageRoom.save();
   res.json({ message: "Users added to message room" });
 });
@@ -223,22 +215,24 @@ exports.remove_user = asyncHandler(async (req, res) => {
 });
 
 // update message room name handler ------------------------------------------------------------------
-exports.update_name = asyncHandler(async (req, res) => {
-  const messageRoom = await MessageRoom.findById(req.params.id).exec();
-  if (!messageRoom) {
-    return res.status(400).json({ message: "Message room not found" });
-  }
+exports.update_name = validate("update_name").concat(
+  asyncHandler(async (req, res) => {
+    const messageRoom = await MessageRoom.findById(req.params.id).exec();
+    if (!messageRoom) {
+      return res.status(400).json({ message: "Message room not found" });
+    }
 
-  if (
-    !messageRoom.users
-      .map((user) => user.toString())
-      .includes(req.user.userId.toString())
-  ) {
-    return res.status(400).json({ message: "User not in message room" });
-  }
+    if (
+      !messageRoom.users
+        .map((user) => user.toString())
+        .includes(req.user.userId.toString())
+    ) {
+      return res.status(400).json({ message: "User not in message room" });
+    }
 
-  messageRoom.name = req.body.name;
+    messageRoom.name = req.body.name;
 
-  await messageRoom.save();
-  res.json({ message: "Message room name updated" });
-});
+    await messageRoom.save();
+    res.json({ message: "Message room name updated" });
+  })
+);
