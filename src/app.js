@@ -48,6 +48,9 @@ app.use("/api", authRoutes);
 const messageRoomRoutes = require("./routes/messageRoomRoute");
 app.use("/api", messageRoomRoutes);
 
+const messageRoutes = require("./routes/messageRoute");
+app.use("/api", messageRoutes);
+
 const friendRequestRoutes = require("./routes/friendRequestRoute");
 app.use("/api", friendRequestRoutes);
 
@@ -58,6 +61,7 @@ app.use("/api", userRoutes);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
+  console.log("hello");
   next(createError(404));
 });
 
@@ -66,7 +70,6 @@ app.use(function (err, req, res, next) {
   // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get("env") === "development" ? err : {};
-
   // render the error page
   res.status(err.status || 500);
   res.send("error");

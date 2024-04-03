@@ -55,7 +55,11 @@ exports.find_user = validate("find_user").concat(
     if (match) {
       // USE JWT TO SIGN USER AND SEND TOKEN
       jwt.sign(
-        { userId: user._id },
+        {
+          userId: user._id,
+          username: user.username,
+          profile_img: user.profile_img,
+        },
         process.env.SECRET_KEY,
         { expiresIn: "2 days" },
         (err, token) => {
@@ -77,6 +81,8 @@ exports.find_user = validate("find_user").concat(
 exports.re_login_user = asyncHandler(async (req, res) => {
   res.json({
     id: req.user.userId,
+    username: req.user.username,
+    profile_img: req.user.profile_img,
   });
 });
 
