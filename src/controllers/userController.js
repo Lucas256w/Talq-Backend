@@ -3,6 +3,7 @@ const FriendRequest = require("../models/friendRequest");
 const asyncHandler = require("express-async-handler");
 const { body, validationResult } = require("express-validator");
 const bcrypt = require("bcryptjs");
+const he = require("he");
 
 const cloudinary = require("../../config/cloudinaryConfig");
 

@@ -7,7 +7,7 @@ const { body, validationResult } = require("express-validator");
 const validate = (method) => {
   switch (method) {
     case "new_friend_request": {
-      return [body("username", "username is required").escape().notEmpty()];
+      return [body("username", "username is required").notEmpty()];
     }
   }
 };

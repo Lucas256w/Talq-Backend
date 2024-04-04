@@ -11,29 +11,25 @@ const validate = (method) => {
   switch (method) {
     case "find_user": {
       return [
-        body("username", "Username is required").escape().notEmpty(),
-        body("password", "Password is required").escape().notEmpty(),
+        body("username", "Username is required").notEmpty(),
+        body("password", "Password is required").notEmpty(),
       ];
     }
     case "new_user": {
       return [
         body("username", "Username must be at least 4 characters long")
           .trim()
-          .isLength({ min: 4 })
-          .escape(),
+          .isLength({ min: 4 }),
         body("email", "Must be a valid email address")
           .trim()
           .isEmail()
-          .normalizeEmail()
-          .escape(),
+          .normalizeEmail(),
         body("password", "Password must be at least 8 characters long")
           .trim()
-          .isLength({ min: 8 })
-          .escape(),
+          .isLength({ min: 8 }),
         body("confirmPassword", "Confirm Password does not match password")
           .trim()
-          .custom((value, { req }) => value === req.body.password)
-          .escape(),
+          .custom((value, { req }) => value === req.body.password),
       ];
     }
   }

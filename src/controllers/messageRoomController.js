@@ -3,6 +3,7 @@ const User = require("../models/user");
 const Message = require("../models/message");
 const { body, validationResult } = require("express-validator");
 const asyncHandler = require("express-async-handler");
+const he = require("he");
 
 const validate = (method) => {
   switch (method) {
@@ -10,7 +11,7 @@ const validate = (method) => {
       return [body("users", "Users must be an array of usernames").isArray()];
     }
     case "update_name": {
-      return [body("name", "Name is required").trim().exists().escape()];
+      return [body("name", "Name is required").trim().exists()];
     }
   }
 };
@@ -49,13 +50,7 @@ exports.new_message_room = validate("new_message_room").concat(
     const messageRoom = new MessageRoom({
       users: users.map((user) => user._id),
       type: users.length === 2 ? "private" : "group",
-      name: users
-        .filter((user) => user._id.toString() !== req.user.userId)
-        .map((user) => user.username)
-        .join(", "),
     });
-
-    console.log(messageRoom);
 
     try {
       await messageRoom.save();
@@ -115,6 +110,8 @@ exports.get_message_rooms = asyncHandler(async (req, res) => {
       )} days`;
     }
 
+    // unescape the message
+    messageRoomObject.lastMessage = he.decode(messageRoomObject.lastMessage);
     processedMessageRooms.push(messageRoomObject);
   }
 

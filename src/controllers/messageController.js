@@ -2,6 +2,7 @@ const Message = require("../models/message");
 const MessageRoom = require("../models/messageRoom");
 const asyncHandler = require("express-async-handler");
 const { body, validationResult } = require("express-validator");
+const he = require("he");
 
 const validate = (method) => {
   switch (method) {
@@ -80,7 +81,7 @@ exports.get_messages = asyncHandler(async (req, res) => {
 
   const processedMessages = [];
 
-  //convert message time to a more readable format
+  //convert message time to a more readable format and unescape the message
   for (let message of messages) {
     let messageObject = message.toObject();
     const timeDifference = Date.now() - messageObject.created_at;
@@ -95,6 +96,9 @@ exports.get_messages = asyncHandler(async (req, res) => {
         timeDifference / 86400000
       )} days`;
     }
+
+    // unescape the message with he
+    messageObject.message = he.decode(messageObject.message);
 
     processedMessages.push(messageObject);
   }
