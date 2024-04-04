@@ -89,7 +89,6 @@ exports.re_login_user = asyncHandler(async (req, res) => {
 // Sign up handler ------------------------------------------------------------
 exports.new_user = validate("new_user").concat(
   asyncHandler(async (req, res) => {
-    console.log("hello2" + req);
     const errors = validationResult(req);
 
     const userExist = await User.findOne({
@@ -104,14 +103,11 @@ exports.new_user = validate("new_user").concat(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    console.log("hello3" + req);
-
     let user;
 
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
     if (req.file) {
-      console.log("hello4");
       const result = await cloudinary.uploader.upload(req.file.path);
       user = new User({
         username: req.body.username,
@@ -121,7 +117,6 @@ exports.new_user = validate("new_user").concat(
         cloudinary_id: result.public_id,
       });
     } else {
-      console.log("hello5");
       user = new User({
         username: req.body.username,
         password: hashedPassword,
@@ -129,15 +124,11 @@ exports.new_user = validate("new_user").concat(
       });
     }
 
-    console.log("hello6");
-
     try {
       await user.save();
       res.status(201).json({ message: "User created successfully" });
-      console.log("hello7");
     } catch (error) {
       // Handle errors like duplicate username/email
-      console.log("hello8");
       res.status(500).json({
         message: "An error occurred while creating the user.",
         error: error.message,
