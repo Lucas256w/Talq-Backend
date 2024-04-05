@@ -1,5 +1,7 @@
 # Talq-Backend
 
+Client (Frontend): https://github.com/Lucas256w/Talq
+
 ## Run it locally
 
 ### Prerequisites
